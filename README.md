@@ -107,6 +107,31 @@ This section is the special section for triglav-agent-hdfs.
 
 ## Development
 
+### Prepare
+
+```
+bundle
+bundle exec jbundle install
+```
+
+```
+./prepare.sh
+```
+
+Edit .env file.
+
+### Start
+
+Start up triglav api on localhost.
+
+Run triglav-agent-hdfs as:
+
+```
+bundle exec triglav-agent-hdfs --dotenv -c config.yml --debug
+```
+
+The debug mode with --debug option ignores the `last_modification_time` value in status file.
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/triglav-agent-hdfs. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.

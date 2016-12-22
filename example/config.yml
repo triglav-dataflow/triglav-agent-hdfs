@@ -4,10 +4,10 @@ serverengine:
   log_rotate_age: 5
   log_rotate_size: 10485760
 triglav:
-  url: <%= ENV['TRIGLAV_URL'] %>
+  url: <%= ENV['TRIGLAV_URL'] || 'http://localhost:7800' %>
   credential:
-    username: <%= ENV['TRIGLAV_USERNAME'] %>
-    password: <%= ENV['TRIGLAV_PASSWORD'] %>
+    username: <%= ENV['TRIGLAV_USERNAME'] || 'triglav_test' %>
+    password: <%= ENV['TRIGLAV_PASSWORD'] || 'triglav_test' %>
     authenticator: local
 hdfs:
   watcher_interval: 5
@@ -17,7 +17,7 @@ hdfs:
         # - /etc/hadoop/conf/core-site.xml
         # - /etc/hadoop/conf/hdfs-site.xml
       config:
-        fs.defaultFS: 'hdfs://10.66.40.24:8020'
+        fs.defaultFS: <%= "hdfs://#{ENV['HDFS_HOST']}:#{ENV['HDFS_PORT']}" %>
         dfs.replication: 1
         fs.hdfs.impl: 'org.apache.hadoop.hdfs.DistributedFileSystem'
         fs.file.impl: 'org.apache.hadoop.fs.LocalFileSystem'
