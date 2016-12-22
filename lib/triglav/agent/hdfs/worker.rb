@@ -5,21 +5,24 @@ module Triglav::Agent
   module Hdfs
     module Worker
       def initialize
-        @timer = Timer.new
       end
 
       def reload
+        $logger.info { "Worker#reload worker_id:#{worker_id}" }
         $setting.reload
       end
 
       def run
+        $logger.info { "Worker#run worker_id:#{worker_id}" }
+        @timer = Timer.new
+        @stop = false
         until @stop
           @timer.wait(watcher_interval) { process }
         end
       end
 
       def process
-        $logger.debug { "Start Processing worker_id:#{worker_id}" }
+        $logger.debug { "Start Worker#process worker_id:#{worker_id}" }
         api_client = ApiClient.new # renew connection
 
         # It is possible to seperate agent process by prefixes of resource uris
@@ -34,13 +37,13 @@ module Triglav::Agent
             end
           end
         end
-        $logger.debug { "End Processing worker_id:#{worker_id}" }
+        $logger.debug { "End Worker#process worker_id:#{worker_id}" }
       end
 
       def stop
-        $logger.info { "Stop processing worker_id:#{worker_id}" }
+        $logger.info { "Worker#stop worker_id:#{worker_id}" }
         @stop = true
-        @timer.signal
+        @timer.stop
       end
 
       private
