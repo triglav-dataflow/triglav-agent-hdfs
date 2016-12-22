@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require 'triglav/agent/hdfs'
+Triglav::Agent::Configuration.configure do |config|
+  # config.cli_class = Triglav::Agent::Hdfs::CLI
+  # config.setting_class = Triglav::Agent::Hdfs::Setting
+  config.worker_module = Triglav::Agent::Hdfs::Worker
+end
+Triglav::Agent::Configuration.cli_class.new.run
