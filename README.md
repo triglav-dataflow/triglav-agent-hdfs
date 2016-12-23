@@ -41,39 +41,12 @@ Usage: triglav-agent-hdfs [options]
 Run as:
 
 ```
-bundle exec triglav-agent-hdfs --dotenv -c config.yml
+TRIGLAV_ENV=development bundle exec triglav-agent-hdfs --dotenv -c config.yml
 ```
 
 ## Configuration
 
-Prepare config.yml as:
-
-```yaml
-serverengine:
-  log: 'STDOUT'
-  log_level: 'debug'
-  log_rotate_age: 5
-  log_rotate_size: 10485760
-triglav:
-  url: <%= ENV['TRIGLAV_URL'] %>
-  credential:
-    name: <%= ENV['TRIGLAV_USERNAME'] %>
-    password: <%= ENV['TRIGLAV_PASSWORD'] %>
-    authenticator: local
-hdfs:
-  watcher_interval: 60
-  connection_info:
-    "hdfs://":
-      config_files:
-        - /etc/hadoop/conf/core-site.xml
-        - /etc/hadoop/conf/hdfs-site.xml
-      config:
-        fs.defaultFS: 'hdfs://10.66.40.24:8020'
-        dfs.replication: 1
-        fs.hdfs.impl: 'org.apache.hadoop.hdfs.DistributedFileSystem'
-        fs.file.impl: 'org.apache.hadoop.fs.LocalFileSystem'
-      doas: hadoop
-```
+Prepare config.yml as [example/config.yml](./example/config.yml).
 
 You can use erb template. You may load environment variables from .env file with `--dotenv` option.
 
@@ -118,7 +91,7 @@ bundle exec jbundle install
 ./prepare.sh
 ```
 
-Edit .env file.
+Edit `.env` file or `config.yml` file directly.
 
 ### Start
 
@@ -127,7 +100,7 @@ Start up triglav api on localhost.
 Run triglav-agent-hdfs as:
 
 ```
-bundle exec triglav-agent-hdfs --dotenv -c config.yml --debug
+TRIGLAV_ENV=development bundle exec triglav-agent-hdfs --dotenv --debug
 ```
 
 The debug mode with --debug option ignores the `last_modification_time` value in status file.
