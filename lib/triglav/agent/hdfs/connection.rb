@@ -16,6 +16,8 @@ module Triglav::Agent::Hdfs
     # @option connection_info [String] :doas
     def initialize(connection_info)
       @connection_info = connection_info
+      @configurations = {}
+      @filesystems = {}
     end
 
     # Get latest modification file under given path
@@ -24,52 +26,51 @@ module Triglav::Agent::Hdfs
     #
     # @return [org.apache.hadoop.fs.FileStatus]
     def get_latest_file_under(paths)
-      entries = glob_files_recursively(Array(paths))
-      if entries.size > 0
-        max = entries.first
-        entries[1..entries.size].each do |entry|
-          max = entry.modification_time > max.modification_time ? entry : max
-        end
-        max
-      else
-        []
+      entries = []
+      Array(paths).each do |path|
+        entries.concat(glob_files_recursively(path))
       end
+
+      latest_entry = nil
+      if entries.size > 0
+        latest_entry = entries.first
+        entries[1..entries.size].each do |entry|
+          latest_entry = entry.modification_time > latest_entry.modification_time ? entry : latest_entry
+        end
+      end
+      latest_entry
     end
 
     private
 
-    # @param [Array of String] path glob patterns
+    # @param [String] path glob patterns
     #
     # @return [Array of org.apache.hadoop.fs.FileStatus] list of files
-    def glob_files_recursively(paths)
-      # glob_status does not return PathNotFoundException, return nil instead
+    def glob_files_recursively(path, fs = nil)
+      fs ||= get_fs(namespace = URI.parse(path).host)
+
       entries = []
-      paths.each do |path|
-        _entries = fs.glob_status(Path.new(path))
-        entries.concat(_entries) if _entries
-      end
-
-      file_entries = []
-      entries.each do |entry|
-        file_entries.concat(list_files_recursively(entry))
-      end
-
-      file_entries
+      glob_entries = fs.glob_status(Path.new(path))
+      glob_entries.each do |entry|
+        entries.concat(list_files_recursively(entry, fs))
+      end if glob_entries
+      entries
     end
 
-    def list_files_recursively(entry)
+    def list_files_recursively(entry, fs = nil)
       return [entry] unless entry.is_directory
+      fs ||= get_fs(namespace = URI.parse(entry.get_path).host)
 
-      file_entries = []
-      entries = fs.list_status(entry.get_path)
-      entries.each do |entry|
-        file_entries.concat(list_files_recursively(entry))
+      entries = []
+      list_entries = fs.list_status(entry.get_path)
+      list_entries.each do |entry|
+        entries.concat(list_files_recursively(entry, fs))
       end
-      file_entries
+      entries
     end
 
-    def configuration
-      return @configuration if @configuration
+    def get_configuration(namespace)
+      return @configurations[namespace] if @configurations[namespace]
 
       configuration = org.apache.hadoop.conf.Configuration.new
 
@@ -82,18 +83,21 @@ module Triglav::Agent::Hdfs
         configuration.set(key.to_s, value.to_s)
       end
 
-      @configuration = configuration
+      configuration.set('fs.defaultFS', "hdfs://#{namespace}")
+
+      @configurations[namespace] = configuration
     end
 
-    def fs
-      return @fs if @fs
+    def get_fs(namespace)
+      return @filesystems[namespace] if @filesystems[namespace]
+      configuration = get_configuration(namespace)
       if doas = connection_info[:doas]
         uri = FileSystem.get_default_uri(configuration)
         fs = FileSystem.get(uri, configuration, doas)
       else
         fs = FileSystem.get(configuration)
       end
-      @fs = fs
+      @filesystems[namespace] = fs
     end
   end
 end
