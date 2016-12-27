@@ -13,15 +13,24 @@ module Triglav::Agent::Hdfs
     end
 
     def process(resource)
-      last_modification_time = get_last_modification_time(resource)
-      $logger.debug { "resource.uri:#{resource.uri}, previous_modification_time:#{last_modification_time}" }
-      events, latest_modification_time = ResourceWatcher.new(connection, resource, $setting.debug? ? 0 : last_modification_time).get_events
-      $logger.debug { "resource.uri:#{resource.uri}, latest_modification_time:#{latest_modification_time}" }
+      previous_last_modification_time = get_last_modification_time(resource)
+      $logger.debug {
+        "Start process #{resource.uri}, " \
+        "previous_last_modification_time:#{previous_last_modification_time}"
+      }
+      events, new_last_modification_time = ResourceWatcher.new(
+        connection, resource, $setting.debug? ? 0 : previous_last_modification_time
+      ).get_events
+      $logger.debug {
+        "Finish process #{resource.uri}, " \
+        "previous_last_modification_time:#{previous_last_modification_time}, " \
+        "new_last_modification_time:#{new_last_modification_time}"
+      }
       return if events.nil? || events.empty?
       yield(events) # send_message
       Triglav::Agent::StorageFile.open($setting.status_file) do |fp|
         @status = fp.load # reload during locking
-        update_status(resource, latest_modification_time)
+        update_status(resource, new_last_modification_time)
         fp.dump(@status)
       end
     end
@@ -120,9 +129,13 @@ module Triglav::Agent::Hdfs
         latest_files = {}
         paths.each do |path, date_hour|
           file = connection.get_latest_file_under(path)
-          next unless file
-          next if file.modification_time <= last_modification_time
-          $logger.debug { "get_latest_file_under(#{path.inspect}) #=> path:#{file.path}, modification_time:#{file.modification_time}" }
+          unless file
+            $logger.debug { "get_latest_file_under(#{path.inspect}) #=> does not exist" }
+            next
+          end
+          is_newer = file.modification_time > last_modification_time
+          $logger.debug { "get_latest_file_under(#{path.inspect}) #=> latest_modification_time:#{file.modification_time}, is_newer:#{is_newer}" }
+          next unless is_newer
           date, hour = date_hour
           latest_files[date] ||= {}
           latest_files[date][hour] = file
