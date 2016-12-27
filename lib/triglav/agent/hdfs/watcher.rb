@@ -13,24 +13,20 @@ module Triglav::Agent::Hdfs
     end
 
     def process(resource)
-      previous_last_modification_time = get_last_modification_time(resource)
-      $logger.debug {
-        "Start process #{resource.uri}, " \
-        "previous_last_modification_time:#{previous_last_modification_time}"
-      }
-      events, new_last_modification_time = ResourceWatcher.new(
-        connection, resource, $setting.debug? ? 0 : previous_last_modification_time
-      ).get_events
-      $logger.debug {
-        "Finish process #{resource.uri}, " \
-        "previous_last_modification_time:#{previous_last_modification_time}, " \
-        "new_last_modification_time:#{new_last_modification_time}"
-      }
+      last_modification_time = get_last_modification_time(resource)
+      $logger.debug { "Start process #{resource.uri}, last_modification_time:#{last_modification_time}" }
+      events, new_last_modification_time = get_events(resource, $setting.debug? ? 0 : last_modification_time)
+      $logger.debug { "Finish process #{resource.uri}, last_modification_time:#{last_modification_time}, " \
+                      "new_last_modification_time:#{new_last_modification_time}" }
       return if events.nil? || events.empty?
       yield(events) # send_message
+      update_status_file(resource, new_last_modification_time)
+    end
+
+    def update_status_file(resource, last_modification_time)
       Triglav::Agent::StorageFile.open($setting.status_file) do |fp|
         @status = fp.load # reload during locking
-        update_status(resource, new_last_modification_time)
+        update_status(resource, last_modification_time)
         fp.dump(@status)
       end
     end
@@ -40,11 +36,19 @@ module Triglav::Agent::Hdfs
     end
 
     def get_last_modification_time(resource)
-      @status.dig(:last_modification_time, resource.uri.to_sym) || get_current_time
+      unless last_modification_time = @status.dig(:last_modification_time, resource.uri.to_sym)
+        last_modification_time = get_current_time
+        update_status_file(resource, last_modification_time)
+      end
+      last_modification_time
     end
 
     def get_current_time
       (Time.now.to_f * 1000).to_i # msec
+    end
+
+    def get_events(resource, last_modification_time)
+      ResourceWatcher.new(connection, resource, last_modification_time).get_events
     end
 
     class ResourceWatcher
