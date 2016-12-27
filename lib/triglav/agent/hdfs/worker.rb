@@ -26,6 +26,7 @@ module Triglav::Agent
         api_client = ApiClient.new # renew connection
 
         # It is possible to seperate agent process by prefixes of resource uris
+        count = 0
         resource_uri_prefixes.each do |resource_uri_prefix|
           # list_aggregated_resources returns unique resources which we have to monitor
           if aggregated_resources = api_client.list_aggregated_resources(resource_uri_prefix)
@@ -33,11 +34,12 @@ module Triglav::Agent
             connection = Connection.new(get_connection_info(resource_uri_prefix))
             watcher = Watcher.new(connection)
             aggregated_resources.each do |resource|
+              count += 1
               watcher.process(resource) {|events| api_client.send_messages(events) }
             end
           end
         end
-        $logger.debug { "End Worker#process worker_id:#{worker_id}" }
+        $logger.info { "End Worker#process worker_id:#{worker_id} count:#{count}" }
       end
 
       def stop
