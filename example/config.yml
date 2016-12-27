@@ -11,7 +11,7 @@ defaults: &defaults
       password: <%= ENV['TRIGLAV_PASSWORD'] || 'triglav_test' %>
       authenticator: local
   hdfs:
-    watcher_interval: 5
+    monitor_interval: 5
     connection_info:
       "hdfs://":
         config_files:
