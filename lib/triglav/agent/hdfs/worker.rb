@@ -5,6 +5,7 @@ module Triglav::Agent
   module Hdfs
     module Worker
       def initialize
+        @timer = Timer.new
       end
 
       def reload
@@ -14,8 +15,7 @@ module Triglav::Agent
 
       def run
         $logger.info { "Worker#run worker_id:#{worker_id}" }
-        @timer = Timer.new
-        @stop = false
+        start
         until @stop
           @timer.wait(watcher_interval) { process }
         end
@@ -34,18 +34,29 @@ module Triglav::Agent
             connection = Connection.new(get_connection_info(resource_uri_prefix))
             watcher = Watcher.new(connection)
             aggregated_resources.each do |resource|
+              break if stopped?
               count += 1
               watcher.process(resource) {|events| api_client.send_messages(events) }
             end
           end
+          break if stopped?
         end
         $logger.info { "End Worker#process worker_id:#{worker_id} count:#{count}" }
+      end
+
+      def start
+        @timer.start
+        @stop = false
       end
 
       def stop
         $logger.info { "Worker#stop worker_id:#{worker_id}" }
         @stop = true
         @timer.stop
+      end
+
+      def stopped?
+        @stop
       end
 
       private
