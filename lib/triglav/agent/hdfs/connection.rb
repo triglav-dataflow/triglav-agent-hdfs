@@ -1,5 +1,6 @@
 require 'jbundler'
 require 'uri'
+require 'tempfile'
 
 module Triglav::Agent::Hdfs
   class Connection
@@ -22,7 +23,7 @@ module Triglav::Agent::Hdfs
 
     # Get latest modification file under given path
     #
-    # @param [Array of String, or String] path glob patterns
+    # @param [Array of String, or String] hdfs path glob patterns
     #
     # @return [org.apache.hadoop.fs.FileStatus]
     def get_latest_file_under(paths)
@@ -39,6 +40,39 @@ module Triglav::Agent::Hdfs
         end
       end
       latest_entry
+    end
+
+    # for test
+    #
+    # @param [String] hdfs path
+    # @return [Boolean] true for success
+    def mkdir(path)
+      fs = get_fs(namespace = URI.parse(path).host)
+      fs.mkdirs(Path.new(path))
+    end
+
+    # for test
+    #
+    # @param [String] hdfs path
+    # @return [Boolean] true for success
+    def touch(path, overwrite = false)
+      fs = get_fs(namespace = URI.parse(path).host)
+      Tempfile.create('triglav-agent-hdfs') do |fp|
+        src = Path.new(fp.path)
+        dst = Path.new(path) # hdfs://
+        del_src = false
+        overwrite = overwrite
+        fs.copyFromLocalFile(del_src, overwrite, src, dst)
+      end
+    end
+
+    # for test
+    #
+    # @param [String] hdfs path
+    # @return [Boolean] true for success
+    def delete(path, recursive = false)
+      fs = get_fs(namespace = URI.parse(path).host)
+      fs.delete(Path.new(path), recursive)
     end
 
     private

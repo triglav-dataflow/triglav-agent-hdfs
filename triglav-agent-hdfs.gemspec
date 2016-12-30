@@ -19,11 +19,14 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "serverengine"
-  spec.add_dependency "dotenv"
+  spec.add_dependency "triglav-agent"
+  spec.add_dependency "triglav_client"
   spec.add_dependency "jbundler"
 
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "test-unit"
+  spec.add_development_dependency "test-unit-rr"
+  spec.add_development_dependency "test-unit-power_assert"
+  spec.add_development_dependency "timecop"
 end
