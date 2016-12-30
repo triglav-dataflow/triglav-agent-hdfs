@@ -145,7 +145,7 @@ module Triglav::Agent::Hdfs
             resource_unit: query_unit,
             resource_time: date_hour_to_i(date, hour, resource.timezone),
             resource_timezone: resource.timezone,
-            payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}, # msec
+            payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}.to_json, # msec
           }
         end
         events.concat(hourly_events)
