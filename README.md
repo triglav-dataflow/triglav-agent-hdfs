@@ -116,5 +116,4 @@ The gem is available as open source under the terms of the [MIT License](http://
 
 ## ToDo
 
-* write tests
-* prepare mocks for both triglav and hdfs
+* prepare mocks of both triglav and hdfs for tests
