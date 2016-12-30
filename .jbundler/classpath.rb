@@ -8,7 +8,6 @@ JBUNDLER_CLASSPATH = []
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/org/apache/httpcomponents/httpcore/4.2.4/httpcore-4.2.4.jar')
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/log4j/log4j/1.2.17/log4j-1.2.17.jar')
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar')
-JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/org/yaml/snakeyaml/1.14/snakeyaml-1.14.jar')
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1.jar')
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/org/apache/directory/server/apacheds-kerberos-codec/2.0.0-M15/apacheds-kerberos-codec-2.0.0-M15.jar')
 JBUNDLER_CLASSPATH << (JBUNDLER_LOCAL_REPO + '/org/apache/curator/curator-recipes/2.6.0/curator-recipes-2.6.0.jar')

@@ -21,8 +21,7 @@ module Triglav::Agent::Hdfs
     end
 
     def process
-      if !%w[daily hourly daily,hourly].include?(resource.unit) ||
-          resource.timezone.nil? || resource.span_in_days.nil?
+      unless resource_valid?
         $logger.warn { "Broken resource: #{resource.to_s}" }
         return nil
       end
@@ -31,16 +30,18 @@ module Triglav::Agent::Hdfs
       events, new_last_modification_time = get_events
       $logger.debug { "Finish process #{resource.uri}, last_modification_time:#{last_modification_time}, " \
                       "new_last_modification_time:#{new_last_modification_time}" }
-      return if events.nil? || events.empty?
+
+      return nil if events.nil? || events.empty?
       yield(events) # send_message
       update_status_file(new_last_modification_time)
+      true
     end
 
     def get_events
       latest_files = fetch_latest_files
 
       events = build_events(latest_files)
-      if resource.unit == 'daily,hourly'
+      if hourly? and daily?
         daily_events = build_daily_events_from_hourly(latest_files)
         events.concat(daily_events)
       end
@@ -74,9 +75,56 @@ module Triglav::Agent::Hdfs
       (Time.now.to_f * 1000).to_i # msec
     end
 
-    # 'daily,hourly': qeury in hourly way, then merge events into daily in ruby
+    def resource_valid?
+      resource_unit_valid? && !resource.timezone.nil? && !resource.span_in_days.nil?
+    end
+
+    # singular,daily,hourly is not allowed
+    # singular: uri should not have date format
+    # daily,hourly: uri should have date format
+    def resource_unit_valid?
+      units = resource.unit.split(',').sort
+      return false if units == ['daily', 'hourly', 'singular']
+      if units.include?('hourly')
+        return false unless resource.uri.match(/%H/)
+      end
+      if units.include?('daily')
+        return false unless resource.uri.match(/%d/)
+      end
+      if units.include?('singular')
+        return false if resource.uri.match(/%[YmdH]/)
+      end
+      true
+    end
+
+    def hourly?
+      return @is_hourly unless @is_hourly.nil?
+      @is_hourly = resource.unit.include?('hourly')
+    end
+
+    def daily?
+      return @is_daily unless @is_daily.nil?
+      @is_daily = resource.unit.include?('daily')
+    end
+
+    def singular?
+      return @is_singular unless @is_singular.nil?
+      @is_singular = resource.unit.include?('singular')
+    end
+
+    def periodic?
+      hourly? or daily?
+    end
+
     def query_unit
-      @query_unit ||= (resource.unit == 'daily,hourly' ? 'hourly' : resource.unit)
+      @query_unit ||=
+        if hourly?
+          'hourly'
+        elsif daily?
+          'daily'
+        elsif singular?
+          'singular'
+        end
     end
 
     def dates
@@ -96,7 +144,7 @@ module Triglav::Agent::Hdfs
         dates.each do |date|
           date_time = date.to_time
           (0..23).each do |hour|
-            path = (date_time + hour).strftime(resource.uri)
+            path = (date_time + hour * 3600).strftime(resource.uri)
             paths[path] = [date, hour]
           end
         end
@@ -106,6 +154,9 @@ module Triglav::Agent::Hdfs
           path = date.strftime(resource.uri)
           paths[path] = [date, hour]
         end
+      when 'singular'
+        path = resource.uri
+        paths[path] = [nil, nil]
       end
       @paths = paths
     end
@@ -175,6 +226,7 @@ module Triglav::Agent::Hdfs
     end
 
     def date_hour_to_i(date, hour, timezone)
+      return 0 if date.nil?
       Time.strptime("#{date.to_s} #{hour.to_i} #{timezone}", '%Y-%m-%d %H %z').to_i
     end
   end
