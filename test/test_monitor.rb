@@ -14,6 +14,7 @@ require 'triglav/agent/hdfs/monitor'
 if File.exist?(File.join(ROOT, '.env'))
   class TestMonitor < Test::Unit::TestCase
     include CreateFile
+    Monitor = Triglav::Agent::Hdfs::Monitor
 
     class << self
       def startup
@@ -49,37 +50,32 @@ if File.exist?(File.join(ROOT, '.env'))
       }.merge(params))
     end
 
-    def test_resource_unit_valid
+    def test_resource_valid
       resource = build_resource(unit: 'singular,daily,hourly')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      assert { monitor.send(:resource_unit_valid?) == false }
+      assert { Monitor.resource_valid?(resource) == false }
 
       resource = build_resource(unit: 'daily,hourly')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      assert { monitor.send(:resource_unit_valid?) == false }
+      assert { Monitor.resource_valid?(resource) == false }
 
       resource = build_resource(unit: 'hourly', uri: "#{fs}/#{directory}/%Y-%m-%d")
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      assert { monitor.send(:resource_unit_valid?) == false }
+      assert { Monitor.resource_valid?(resource) == false }
 
       # resource = build_resource(unit: 'daily', uri: "#{fs}/#{directory}/%Y-%m")
-      # monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      # assert { monitor.send(:resource_unit_valid?) == false }
+      # assert { Monitor.resource_valid?(resource) == false }
 
       resource = build_resource(unit: 'singular', uri: "#{fs}/#{directory}/%Y-%m-%d")
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      assert { monitor.send(:resource_unit_valid?) == false }
+      assert { Monitor.resource_valid?(resource) == false }
     end
 
     def test_process
       resource = build_resource
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource)
+      monitor = Monitor.new(connection, resource)
       assert_nothing_raised { monitor.process }
     end
 
     def test_get_hourly_events
       resource = build_resource(unit: 'hourly')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource, last_modification_time: 0)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == resource.span_in_days * 24 }
@@ -94,7 +90,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_get_daily_events
       resource = build_resource(unit: 'daily')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource, last_modification_time: 0)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == resource.span_in_days }
@@ -109,7 +105,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_get_singular_events
       resource = build_resource(unit: 'singular')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource, last_modification_time: 0)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == 1 }

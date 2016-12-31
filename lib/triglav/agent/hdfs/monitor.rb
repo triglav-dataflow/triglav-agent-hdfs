@@ -4,7 +4,7 @@ require 'uri'
 
 module Triglav::Agent::Hdfs
   class Monitor
-    attr_reader :connection, :resource, :last_modification_time
+    attr_reader :connection, :resource, :last_modification_times
 
     # @param [Triglav::Agent::Hdfs::Connection] connection
     # @param [TriglavClient::ResourceResponse] resource
@@ -17,7 +17,7 @@ module Triglav::Agent::Hdfs
     def initialize(connection, resource, last_modification_time: nil)
       @connection = connection
       @resource = resource
-      @last_modification_time = last_modification_time || get_last_modification_time
+      @last_modification_times = get_last_modification_times(last_modification_time)
     end
 
     def process
@@ -26,22 +26,15 @@ module Triglav::Agent::Hdfs
         return nil
       end
 
-      $logger.debug {
-        "Start process #{resource.uri}, " \
-        "last_modification_time:#{last_modification_time}"
-      }
+      $logger.debug { "Start process #{resource.uri}" }
 
-      events, new_last_modification_time = get_events
+      events, new_last_modification_times = get_events
 
-      $logger.debug {
-        "Finish process #{resource.uri}, " \
-        "last_modification_time:#{last_modification_time}, " \
-        "new_last_modification_time:#{new_last_modification_time}"
-      }
+      $logger.debug { "Finish process #{resource.uri}" }
 
       return nil if events.nil? || events.empty?
-      yield(events) # send_message
-      update_status_file(new_last_modification_time)
+      yield(events) if block_given? # send_message
+      update_status_file(new_last_modification_times)
       true
     end
 
@@ -50,27 +43,38 @@ module Triglav::Agent::Hdfs
     def get_events
       latest_files = fetch_latest_files
       events = build_events(latest_files)
-      new_last_modification_time = latest_modification_time(latest_files)
-      [events, new_last_modification_time]
+      new_last_modification_times = build_last_modification_times(latest_files)
+      [events, new_last_modification_times]
     rescue => e
       $logger.warn { "#{e.class} #{e.message} #{e.backtrace.join("\n  ")}" }
       nil
     end
 
-    def update_status_file(last_modification_time)
+    def update_status_file(last_modification_times)
+      last_modification_times[:max] = last_modification_times.values.max
       Triglav::Agent::StorageFile.set(
         $setting.status_file,
-        [:last_modification_time, resource.uri.to_sym],
-        last_modification_time
+        [:v1, resource.uri.to_sym, :last_modification_time],
+        last_modification_times
       )
     end
 
-    def get_last_modification_time
-      Triglav::Agent::StorageFile.getsetnx(
+    # @param [Integer] last_modification_time (for debug)
+    def get_last_modification_times(last_modification_time = nil)
+      max_last_modification_time = Triglav::Agent::StorageFile.getsetnx(
         $setting.status_file,
-        [:last_modification_time, resource.uri.to_sym],
-        get_current_time
+        [:v1, resource.uri.to_sym, :last_modification_time, :max],
+        last_modification_time || get_current_time
       )
+      last_modification_times = Triglav::Agent::StorageFile.get(
+        $setting.status_file,
+        [:v1, resource.uri.to_sym, :last_modification_time]
+      )
+      removes = last_modification_times.keys - paths.keys
+      appends = paths.keys - last_modification_times.keys
+      removes.each {|path| last_modification_times.delete(path) }
+      appends.each {|path| last_modification_times[path] = max_last_modification_time }
+      last_modification_times
     end
 
     def get_current_time
@@ -78,7 +82,11 @@ module Triglav::Agent::Hdfs
     end
 
     def resource_valid?
-      resource_unit_valid? && !resource.timezone.nil? && !resource.span_in_days.nil?
+      self.class.resource_valid?(resource)
+    end
+
+    def self.resource_valid?(resource)
+      resource_unit_valid?(resource) && !resource.timezone.nil? && !resource.span_in_days.nil?
     end
 
     # Two or more combinations are not allowed for hdfs because
@@ -86,7 +94,7 @@ module Triglav::Agent::Hdfs
     # * daily should have %d, but not have %H
     # * singualr should not have %d
     # These conditions conflict.
-    def resource_unit_valid?
+    def self.resource_unit_valid?(resource)
       units = resource.unit.split(',').sort
       return false if units.size >= 2
       if units.include?('hourly')
@@ -119,18 +127,18 @@ module Triglav::Agent::Hdfs
           date_time = date.to_time
           (0..23).each do |hour|
             path = (date_time + hour * 3600).strftime(resource.uri)
-            paths[path] = [date, hour]
+            paths[path.to_sym] = [date, hour]
           end
         end
       when 'daily'
         hour = 0
         dates.each do |date|
           path = date.strftime(resource.uri)
-          paths[path] = [date, hour]
+          paths[path.to_sym] = [date, hour]
         end
       when 'singular'
         path = resource.uri
-        paths[path] = [nil, nil]
+        paths[path.to_sym] = [nil, nil]
       end
       @paths = paths
     end
@@ -138,34 +146,36 @@ module Triglav::Agent::Hdfs
     def fetch_latest_files
       latest_files = {}
       paths.each do |path, date_hour|
-        file = connection.get_latest_file_under(path)
-        unless file
-          $logger.debug { "get_latest_file_under(#{path.inspect}) #=> does not exist" }
+        latest_file = connection.get_latest_file_under(path.to_s)
+        unless latest_file
+          $logger.debug { "get_latest_file_under(\"#{path.to_s}\") #=> does not exist" }
           next
         end
-        is_newer = file.modification_time > last_modification_time
-        $logger.debug { "get_latest_file_under(#{path.inspect}) #=> latest_modification_time:#{file.modification_time}, is_newer:#{is_newer}" }
+        is_newer = latest_file.modification_time > last_modification_times[path]
+        $logger.debug { "get_latest_file_under(\"#{path.to_s}\") #=> latest_modification_time:#{latest_file.modification_time}, is_newer:#{is_newer}" }
         next unless is_newer
-        latest_files[date_hour] = file
+        latest_files[path.to_sym] = latest_file
       end
       latest_files
     end
 
-    def latest_modification_time(latest_files)
-      latest_files.values.map do |file|
-        file.modification_time
-      end.max || last_modification_time
+    def build_last_modification_times(latest_files)
+      last_modification_times = {}
+      latest_files.map do |path, latest_file|
+        last_modification_times[path.to_sym] = latest_file.modification_time
+      end
+      last_modification_times
     end
 
     def build_events(latest_files)
-      latest_files.map do |date_hour, file|
-        date, hour = date_hour
+      latest_files.map do |path, latest_file|
+        date, hour = date_hour = paths[path]
         {
           resource_uri: resource.uri,
           resource_unit: resource.unit,
           resource_time: date_hour_to_i(date, hour, resource.timezone),
           resource_timezone: resource.timezone,
-          payload: {path: file.path.to_s, modification_time: file.modification_time}.to_json, # msec
+          payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}.to_json, # msec
         }
       end
     end
