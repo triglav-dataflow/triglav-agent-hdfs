@@ -7,6 +7,13 @@ Triglav Agent for Hdfs
 * JRuby >= 9.1.5.0
 * Java >= 1.8.0_45
 
+
+## Prerequisites
+
+* Target resource path to monitor must be created or modified atomically. To modify hdfs path atomically, use following strategies for example:
+  1. Create a tmp directory and copy files into the directory, then move to the target path
+  1. Create a marker file such as `_SUCCESS` after copying is done, and monitor the `_SUCESSES` file
+
 ## Installation
 
 Add this line to your application's Gemfile:
