@@ -10,7 +10,7 @@ module Triglav::Agent::Hdfs
     # @param [TriglavClient::ResourceResponse] resource
     # resource:
     #   uri: hdfs://host/path
-    #   unit: 'daily' or 'hourly', or 'daily,hourly' (send hourly event for hourly resource)
+    #   unit: 'daily', 'hourly', or 'singular'
     #   timezone: '+09:00'
     #   span_in_days: 32
     # @param [Integer] last_modification_time (for debug)
