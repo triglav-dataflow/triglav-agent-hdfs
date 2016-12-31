@@ -26,10 +26,18 @@ module Triglav::Agent::Hdfs
         return nil
       end
 
-      $logger.debug { "Start process #{resource.uri}, last_modification_time:#{last_modification_time}" }
+      $logger.debug {
+        "Start process #{resource.uri}, " \
+        "last_modification_time:#{last_modification_time}"
+      }
+
       events, new_last_modification_time = get_events
-      $logger.debug { "Finish process #{resource.uri}, last_modification_time:#{last_modification_time}, " \
-                      "new_last_modification_time:#{new_last_modification_time}" }
+
+      $logger.debug {
+        "Finish process #{resource.uri}, " \
+        "last_modification_time:#{last_modification_time}, " \
+        "new_last_modification_time:#{new_last_modification_time}"
+      }
 
       return nil if events.nil? || events.empty?
       yield(events) # send_message
@@ -37,23 +45,17 @@ module Triglav::Agent::Hdfs
       true
     end
 
+    private
+
     def get_events
       latest_files = fetch_latest_files
-
       events = build_events(latest_files)
-      if hourly? and daily?
-        daily_events = build_daily_events_from_hourly(latest_files)
-        events.concat(daily_events)
-      end
-
       new_last_modification_time = latest_modification_time(latest_files)
       [events, new_last_modification_time]
     rescue => e
       $logger.warn { "#{e.class} #{e.message} #{e.backtrace.join("\n  ")}" }
       nil
     end
-
-    private
 
     def update_status_file(last_modification_time)
       Triglav::Agent::StorageFile.set(
@@ -79,52 +81,24 @@ module Triglav::Agent::Hdfs
       resource_unit_valid? && !resource.timezone.nil? && !resource.span_in_days.nil?
     end
 
-    # singular,daily,hourly is not allowed
-    # singular: uri should not have date format
-    # daily,hourly: uri should have date format
+    # Two or more combinations are not allowed for hdfs because
+    # * hourly should have %d, %H
+    # * daily should have %d, but not have %H
+    # * singualr should not have %d
+    # These conditions conflict.
     def resource_unit_valid?
       units = resource.unit.split(',').sort
-      return false if units == ['daily', 'hourly', 'singular']
+      return false if units.size >= 2
       if units.include?('hourly')
         return false unless resource.uri.match(/%H/)
       end
-      if units.include?('daily')
-        return false unless resource.uri.match(/%d/)
-      end
+      # if units.include?('daily')
+      #   return false unless resource.uri.match(/%d/)
+      # end
       if units.include?('singular')
         return false if resource.uri.match(/%[YmdH]/)
       end
       true
-    end
-
-    def hourly?
-      return @is_hourly unless @is_hourly.nil?
-      @is_hourly = resource.unit.include?('hourly')
-    end
-
-    def daily?
-      return @is_daily unless @is_daily.nil?
-      @is_daily = resource.unit.include?('daily')
-    end
-
-    def singular?
-      return @is_singular unless @is_singular.nil?
-      @is_singular = resource.unit.include?('singular')
-    end
-
-    def periodic?
-      hourly? or daily?
-    end
-
-    def query_unit
-      @query_unit ||=
-        if hourly?
-          'hourly'
-        elsif daily?
-          'daily'
-        elsif singular?
-          'singular'
-        end
     end
 
     def dates
@@ -139,7 +113,7 @@ module Triglav::Agent::Hdfs
       return @paths if @paths
       paths = {}
       # If path becomes same, use newer date
-      case query_unit
+      case resource.unit
       when 'hourly'
         dates.each do |date|
           date_time = date.to_time
@@ -172,55 +146,26 @@ module Triglav::Agent::Hdfs
         is_newer = file.modification_time > last_modification_time
         $logger.debug { "get_latest_file_under(#{path.inspect}) #=> latest_modification_time:#{file.modification_time}, is_newer:#{is_newer}" }
         next unless is_newer
-        date, hour = date_hour
-        latest_files[date] ||= {}
-        latest_files[date][hour] = file
+        latest_files[date_hour] = file
       end
       latest_files
     end
 
     def latest_modification_time(latest_files)
-      latest_files.values.map do |hourly_latest_files|
-        hourly_latest_files.values.map do |file|
-          file.modification_time
-        end.max
+      latest_files.values.map do |file|
+        file.modification_time
       end.max || last_modification_time
     end
 
     def build_events(latest_files)
-      events = []
-      latest_files.map do |date, hourly_latest_files|
-        hourly_events = hourly_latest_files.map do |hour, latest_file|
-          {
-            resource_uri: resource.uri,
-            resource_unit: query_unit,
-            resource_time: date_hour_to_i(date, hour, resource.timezone),
-            resource_timezone: resource.timezone,
-            payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}.to_json, # msec
-          }
-        end
-        events.concat(hourly_events)
-      end
-      events
-    end
-
-    def build_daily_events_from_hourly(latest_files)
-      daily_latest_files = {}
-      latest_files.each do |date, hourly_latest_files|
-        latest_files = hourly_latest_files.values
-        max = latest_files.first
-        latest_files[1..latest_files.size].each do |entry|
-          max = entry.modification_time > max.modification_time ? entry : max
-        end
-        daily_latest_files[date] = max
-      end
-      daily_events = daily_latest_files.map do |date, latest_file|
+      latest_files.map do |date_hour, file|
+        date, hour = date_hour
         {
           resource_uri: resource.uri,
-          resource_unit: 'daily',
-          resource_time: date_hour_to_i(date, 0, resource.timezone),
+          resource_unit: resource.unit,
+          resource_time: date_hour_to_i(date, hour, resource.timezone),
           resource_timezone: resource.timezone,
-          payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}, # msec
+          payload: {path: file.path.to_s, modification_time: file.modification_time}.to_json, # msec
         }
       end
     end

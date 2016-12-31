@@ -54,13 +54,17 @@ if File.exist?(File.join(ROOT, '.env'))
       monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
       assert { monitor.send(:resource_unit_valid?) == false }
 
+      resource = build_resource(unit: 'daily,hourly')
+      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
+      assert { monitor.send(:resource_unit_valid?) == false }
+
       resource = build_resource(unit: 'hourly', uri: "#{fs}/#{directory}/%Y-%m-%d")
       monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
       assert { monitor.send(:resource_unit_valid?) == false }
 
-      resource = build_resource(unit: 'daily', uri: "#{fs}/#{directory}/%Y-%m")
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      assert { monitor.send(:resource_unit_valid?) == false }
+      # resource = build_resource(unit: 'daily', uri: "#{fs}/#{directory}/%Y-%m")
+      # monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
+      # assert { monitor.send(:resource_unit_valid?) == false }
 
       resource = build_resource(unit: 'singular', uri: "#{fs}/#{directory}/%Y-%m-%d")
       monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
@@ -114,18 +118,6 @@ if File.exist?(File.join(ROOT, '.env'))
         assert { event[:resource_uri] == resource.uri }
         assert { event[:resource_unit] == resource.unit }
         assert { event[:resource_timezone] == resource.timezone }
-      end
-      assert { success }
-    end
-
-    def test_get_daily_hourly_events
-      resource = build_resource(unit: 'daily,hourly')
-      monitor = Triglav::Agent::Hdfs::Monitor.new(connection, resource, last_modification_time: 0)
-      success = monitor.process do |events|
-        assert { events != nil}
-        assert { events.size == resource.span_in_days * 24 + resource.span_in_days }
-        assert { events.first[:resource_unit] == 'hourly' }
-        assert { events.last[:resource_unit] == 'daily' }
       end
       assert { success }
     end
