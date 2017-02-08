@@ -54,7 +54,7 @@ module Triglav::Agent::Hdfs
       last_modification_times[:max] = last_modification_times.values.max
       Triglav::Agent::StorageFile.set(
         $setting.status_file,
-        [:v1, resource.uri.to_sym, :last_modification_time],
+        [resource.uri.to_sym, :last_modification_time],
         last_modification_times
       )
     end
@@ -63,12 +63,12 @@ module Triglav::Agent::Hdfs
     def get_last_modification_times(last_modification_time = nil)
       max_last_modification_time = Triglav::Agent::StorageFile.getsetnx(
         $setting.status_file,
-        [:v1, resource.uri.to_sym, :last_modification_time, :max],
+        [resource.uri.to_sym, :last_modification_time, :max],
         last_modification_time || get_current_time
       )
       last_modification_times = Triglav::Agent::StorageFile.get(
         $setting.status_file,
-        [:v1, resource.uri.to_sym, :last_modification_time]
+        [resource.uri.to_sym, :last_modification_time]
       )
       removes = last_modification_times.keys - paths.keys
       appends = paths.keys - last_modification_times.keys
