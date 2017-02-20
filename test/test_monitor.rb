@@ -80,7 +80,7 @@ if File.exist?(File.join(ROOT, '.env'))
         assert { events != nil}
         assert { events.size == resource.span_in_days * 24 }
         event = events.first
-        assert { event.keys == %i[resource_uri resource_unit resource_time resource_timezone payload] }
+        assert { event.keys == %i[uuid resource_uri resource_unit resource_time resource_timezone payload] }
         assert { event[:resource_uri] == resource.uri }
         assert { event[:resource_unit] == resource.unit }
         assert { event[:resource_timezone] == resource.timezone }
@@ -95,7 +95,7 @@ if File.exist?(File.join(ROOT, '.env'))
         assert { events != nil}
         assert { events.size == resource.span_in_days }
         event = events.first
-        assert { event.keys == %i[resource_uri resource_unit resource_time resource_timezone payload] }
+        assert { event.keys == %i[uuid resource_uri resource_unit resource_time resource_timezone payload] }
         assert { event[:resource_uri] == resource.uri }
         assert { event[:resource_unit] == resource.unit }
         assert { event[:resource_timezone] == resource.timezone }
@@ -110,7 +110,7 @@ if File.exist?(File.join(ROOT, '.env'))
         assert { events != nil}
         assert { events.size == 1 }
         event = events.first
-        assert { event.keys == %i[resource_uri resource_unit resource_time resource_timezone payload] }
+        assert { event.keys == %i[uuid resource_uri resource_unit resource_time resource_timezone payload] }
         assert { event[:resource_uri] == resource.uri }
         assert { event[:resource_unit] == resource.unit }
         assert { event[:resource_timezone] == resource.timezone }

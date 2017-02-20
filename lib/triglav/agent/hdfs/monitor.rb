@@ -1,6 +1,7 @@
 require 'triglav/agent/hdfs/connection'
 require 'jbundler'
 require 'uri'
+require 'securerandom'
 
 module Triglav::Agent::Hdfs
   class Monitor
@@ -171,6 +172,7 @@ module Triglav::Agent::Hdfs
       latest_files.map do |path, latest_file|
         date, hour = date_hour = paths[path]
         {
+          uuid: SecureRandom.uuid,
           resource_uri: resource.uri,
           resource_unit: resource.unit,
           resource_time: date_hour_to_i(date, hour, resource.timezone),
