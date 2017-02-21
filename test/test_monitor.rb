@@ -2,6 +2,7 @@
 
 require_relative 'helper'
 require 'triglav/agent/hdfs/monitor'
+require_relative 'support/create_file'
 
 # This test requires a real connection to hdfs, now
 # Configure .env to set proper connection_info of test/config.yml
