@@ -107,7 +107,7 @@ Start up triglav api on localhost.
 Run triglav-agent-hdfs as:
 
 ```
-TRIGLAV_ENV=development bundle exec triglav-agent-hdfs --dotenv --debug
+TRIGLAV_ENV=development bundle exec triglav-agent-hdfs --dotenv --debug -c example/config.yml
 ```
 
 The debug mode with --debug option ignores the `last_modification_time` value in status file.
