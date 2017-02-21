@@ -10,9 +10,9 @@ Triglav Agent for Hdfs
 
 ## Prerequisites
 
-* Target resource path to monitor must be created or modified atomically. To modify hdfs path atomically, use following strategies for example:
-  1. Create a tmp directory and copy files into the directory, then move to the target path
-  1. Create a marker file such as `_SUCCESS` after copying is done, and monitor the `_SUCESSES` file
+* HDFS path to be monitored must be created or modified atomically. To modify HDFS path atomically, use either of following strategies for example:
+  * Create a tmp directory and copy files into the directory, then move to the target path
+  * Create a marker file such as `_SUCCESS` after copying is done, and monitor the `_SUCESSES` file
 
 ## Installation
 
