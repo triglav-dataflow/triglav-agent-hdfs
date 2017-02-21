@@ -5,7 +5,6 @@ require 'test/unit/rr'
 require 'pry'
 require 'timecop'
 require 'triglav/agent/hdfs'
-require_relative 'support/create_file'
 
 TEST_ROOT = __dir__
 ROOT = File.dirname(__dir__)
