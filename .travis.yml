@@ -5,11 +5,10 @@ rvm:
   - jruby-head
 jdk:
   - oraclejdk8
+env:
+  - JAR_DEPENDENCIES_VERSION=0.3.5
 before_install:
   - gem install bundler
-script:
-  - bundle exec rake vendor_jars
-  - bundle exec rake test
 matrix:
   allow_failures:
     - rvm: jruby-head
