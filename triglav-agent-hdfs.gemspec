@@ -28,8 +28,6 @@ Gem::Specification.new do |spec|
 
   spec.requirements << "jar org.apache.hadoop:hadoop-client, 2.6.5"
 
-  # memo: development_dependency 'jar-dependencies' does not vendor_jars as default unlike runtime_dependency
-  spec.add_development_dependency "jar-dependencies", "~> 0.3.5"
   spec.add_development_dependency "bundler", "~> 1.11"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "test-unit"
