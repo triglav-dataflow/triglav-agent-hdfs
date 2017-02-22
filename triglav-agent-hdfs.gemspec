@@ -23,6 +23,8 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  # ENV is for travis
+  spec.add_dependency "jar-dependencies", ENV['JAR_DEPENDENCIES_VERSION'] ? "= #{ENV['JAR_DEPENDENCIES_VERSION']}" : "~> 0.3.5"
   spec.add_dependency "triglav-agent"
   spec.add_dependency "triglav_client"
 
