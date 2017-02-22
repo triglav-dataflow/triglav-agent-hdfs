@@ -20,7 +20,7 @@ defaults: &defaults
           # - /etc/hadoop/conf/core-site.xml
           # - /etc/hadoop/conf/hdfs-site.xml
         config:
-          fs.defaultFS: <%= "hdfs://#{ENV['HDFS_HOST']}:#{ENV['HDFS_PORT']}" %>
+          fs.defaultFS: <%= "hdfs://#{ENV['HDFS_HOST'] || 'hdev'}:#{ENV['HDFS_PORT'] || 8020}" %>
           dfs.replication: 1
           fs.hdfs.impl: 'org.apache.hadoop.hdfs.DistributedFileSystem'
           fs.file.impl: 'org.apache.hadoop.fs.LocalFileSystem'
