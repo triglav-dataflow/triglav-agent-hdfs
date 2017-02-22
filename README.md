@@ -91,7 +91,7 @@ This section is the special section for triglav-agent-hdfs.
 
 ```
 bundle
-bundle exec jbundle install
+bundle exec rake vendor_jars
 ```
 
 ```
