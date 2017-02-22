@@ -25,12 +25,10 @@ gem 'triglav-agent-hdfs'
 And then execute:
 
     $ bundle
-    $ bundle exec jbundle install
 
 Or install it yourself as:
 
     $ gem install triglav-agent-hdfs
-    $ jbundle install
 
 ## CLI
 
