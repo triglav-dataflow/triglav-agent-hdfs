@@ -1,4 +1,4 @@
-require 'jbundler'
+require 'triglav-agent-hdfs_jars'
 require 'uri'
 require 'tempfile'
 

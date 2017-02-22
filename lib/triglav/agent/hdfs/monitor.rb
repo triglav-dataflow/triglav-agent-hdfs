@@ -1,5 +1,5 @@
+require 'triglav-agent-hdfs_jars'
 require 'triglav/agent/hdfs/connection'
-require 'jbundler'
 require 'uri'
 require 'securerandom'
 
