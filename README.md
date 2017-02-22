@@ -72,6 +72,16 @@ This section is the special section for triglav-agent-hdfs.
 * **monitor_interval**: The interval to watch tables (number, default: 60)
 * **connection_info**: key-value pairs of hdfs connection info where keys are resource URI pattern in regular expression, and values are connection information
 
+### Specification of Resource URI
+
+Resource URI must be a form of:
+
+```
+hdfs://{namespace}/#{path}
+```
+
+Path accepts `strftime` format such as `%Y-%m-%d`.
+
 ## How it behaves
 
 1. Authenticate with triglav
