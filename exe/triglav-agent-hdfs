@@ -2,8 +2,12 @@
 
 require 'triglav/agent/hdfs'
 Triglav::Agent::Configuration.configure do |config|
+  config.name = :hdfs
   # config.cli_class = Triglav::Agent::Hdfs::CLI
   # config.setting_class = Triglav::Agent::Hdfs::Setting
-  config.worker_module = Triglav::Agent::Hdfs::Worker
+  # config.worker_module = Triglav::Agent::Hdfs::Worker
+  # config.processor_class = Triglav::Agent::Hdfs::Processor
+  config.monitor_class = Triglav::Agent::Hdfs::Monitor
+  config.connection_class = Triglav::Agent::Hdfs::Connection
 end
 Triglav::Agent::Configuration.cli_class.new.run
