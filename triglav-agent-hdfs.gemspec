@@ -27,6 +27,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "jar-dependencies", ENV['JAR_DEPENDENCIES_VERSION'] ? "= #{ENV['JAR_DEPENDENCIES_VERSION']}" : "~> 0.3.5"
   spec.add_dependency "triglav-agent"
   spec.add_dependency "triglav_client"
+  spec.add_dependency "parallel"
+  spec.add_dependency "connection_pool"
 
   spec.requirements << "jar org.apache.hadoop:hadoop-client, 2.6.5"
 
