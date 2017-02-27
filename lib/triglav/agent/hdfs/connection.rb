@@ -23,6 +23,10 @@ module Triglav::Agent
         @filesystems = {}
       end
 
+      def close
+        @filesystems.values.each {|fs| fs.close rescue nil }
+      end
+
       # Get latest modification file under given path
       #
       # @param [Array of String, or String] hdfs path glob patterns
