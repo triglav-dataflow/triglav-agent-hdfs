@@ -76,7 +76,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_get_hourly_events
       resource = build_resource(unit: 'hourly')
-      monitor = Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == resource.span_in_days * 24 }
@@ -91,7 +91,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_get_daily_events
       resource = build_resource(unit: 'daily')
-      monitor = Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == resource.span_in_days }
@@ -106,7 +106,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_get_singular_events
       resource = build_resource(unit: 'singular')
-      monitor = Monitor.new(connection, resource, last_modification_time: 0)
+      monitor = Monitor.new(connection, resource)
       success = monitor.process do |events|
         assert { events != nil}
         assert { events.size == 1 }
