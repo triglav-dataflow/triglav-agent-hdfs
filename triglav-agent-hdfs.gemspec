@@ -6,11 +6,11 @@ require 'triglav/agent/hdfs/version'
 Gem::Specification.new do |spec|
   spec.name          = "triglav-agent-hdfs"
   spec.version       = Triglav::Agent::Hdfs::VERSION
-  spec.authors       = ["Naotoshi Seo"]
-  spec.email         = ["sonots@gmail.com"]
+  spec.authors       = ["Triglav Team"]
+  spec.email         = ["triglav_admin_my@dena.jp"]
 
-  spec.summary       = %q{Triglav Agent for HDFS.}
-  spec.description   = %q{Triglav Agent for HDFS.}
+  spec.summary       = %q{HDFS agent for triglav, data-driven workflow tool.}
+  spec.description   = %q{HDFS agent for triglav, data-driven workflow tool.}
   spec.homepage      = "https://github.com/triglav-dataflow/triglav-agent-hdfs"
   spec.license       = "MIT"
 
