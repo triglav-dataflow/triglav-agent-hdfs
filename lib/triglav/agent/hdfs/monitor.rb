@@ -16,7 +16,7 @@ module Triglav::Agent
       #   unit: 'daily', 'hourly', or 'singular'
       #   timezone: '+09:00'
       #   span_in_days: 32
-      def initialize(connection, resource)
+      def initialize(connection, resource_uri_prefix, resource)
         @connection = connection
         @resource_uri_prefix = resource_uri_prefix
         @resource = resource
