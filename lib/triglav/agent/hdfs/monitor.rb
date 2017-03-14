@@ -7,7 +7,7 @@ require 'securerandom'
 module Triglav::Agent
   module Hdfs
     class Monitor < Base::Monitor
-      attr_reader :connection, :resource, :last_modification_times
+      attr_reader :connection, :resource_uri_prefix, :resource, :last_modification_times
 
       # @param [Triglav::Agent::Hdfs::Connection] connection
       # @param [TriglavClient::ResourceResponse] resource
@@ -16,9 +16,11 @@ module Triglav::Agent
       #   unit: 'daily', 'hourly', or 'singular'
       #   timezone: '+09:00'
       #   span_in_days: 32
-      def initialize(connection, resource)
+      def initialize(connection, resource_uri_prefix, resource)
         @connection = connection
+        @resource_uri_prefix = resource_uri_prefix
         @resource = resource
+        @status = Triglav::Agent::Status.new(resource_uri_prefix, resource.uri)
         @last_modification_times = get_last_modification_times
       end
 
@@ -54,23 +56,12 @@ module Triglav::Agent
 
       def update_status_file(last_modification_times)
         last_modification_times[:max] = last_modification_times.values.max
-        Triglav::Agent::StorageFile.set(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modification_time],
-          last_modification_times
-        )
+        @status.set(last_modification_times)
       end
 
       def get_last_modification_times
-        max_last_modification_time = Triglav::Agent::StorageFile.getsetnx(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modification_time, :max],
-          $setting.debug? ? 0 : get_current_time
-        )
-        last_modification_times = Triglav::Agent::StorageFile.get(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modification_time]
-        )
+        max_last_modification_time = @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
+        last_modification_times = @status.get
         removes = last_modification_times.keys - paths.keys
         appends = paths.keys - last_modification_times.keys
         removes.each {|path| last_modification_times.delete(path) }
