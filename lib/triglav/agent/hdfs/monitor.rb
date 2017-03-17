@@ -56,7 +56,7 @@ module Triglav::Agent
 
       def update_status_file(last_modification_times)
         last_modification_times[:max] = last_modification_times.values.max
-        @status.set(last_modification_times)
+        @status.merge!(last_modification_times)
       end
 
       def get_last_modification_times
