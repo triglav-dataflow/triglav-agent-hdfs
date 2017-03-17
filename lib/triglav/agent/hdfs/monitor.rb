@@ -29,7 +29,6 @@ module Triglav::Agent
           $logger.warn { "Broken resource: #{resource.to_s}" }
           return nil
         end
-
         $logger.debug { "Start process #{resource.uri}" }
 
         events, new_last_modification_times = get_events
@@ -45,9 +44,9 @@ module Triglav::Agent
       private
 
       def get_events
-        latest_files = fetch_latest_files
+        new_last_modification_times = get_new_last_modification_times
+        latest_files = select_latest_files(new_last_modification_times)
         events = build_events(latest_files)
-        new_last_modification_times = build_last_modification_times(latest_files)
         [events, new_last_modification_times]
       rescue => e
         $logger.warn { "#{e.class} #{e.message} #{e.backtrace.join("\n  ")}" }
@@ -56,7 +55,7 @@ module Triglav::Agent
 
       def update_status_file(last_modification_times)
         last_modification_times[:max] = last_modification_times.values.max
-        @status.merge!(last_modification_times)
+        @status.set(last_modification_times)
       end
 
       def get_last_modification_times
@@ -135,32 +134,29 @@ module Triglav::Agent
         @paths = paths
       end
 
-      def fetch_latest_files
-        latest_files = {}
+      def get_new_last_modification_times
+        new_last_modification_times = {}
         paths.each do |path, date_hour|
           latest_file = connection.get_latest_file_under(path.to_s)
           unless latest_file
             $logger.debug { "get_latest_file_under(\"#{path.to_s}\") #=> does not exist" }
             next
           end
-          is_newer = latest_file.modification_time > last_modification_times[path]
-          $logger.debug { "get_latest_file_under(\"#{path.to_s}\") #=> latest_modification_time:#{latest_file.modification_time}, is_newer:#{is_newer}" }
-          next unless is_newer
-          latest_files[path.to_sym] = latest_file
+          new_last_modification_times[path.to_sym] = latest_file.modification_time
         end
-        latest_files
+        new_last_modification_times
       end
 
-      def build_last_modification_times(latest_files)
-        last_modification_times = {}
-        latest_files.map do |path, latest_file|
-          last_modification_times[path.to_sym] = latest_file.modification_time
+      def select_latest_files(new_last_modification_times)
+        new_last_modification_times.select do |path, new_last_modification_time|
+          is_newer = new_last_modification_time > (last_modification_times[path] || 0)
+          $logger.debug { "#{path.to_s} #=> last_modification_time:#{new_last_modification_time}, is_newer:#{is_newer}" }
+          is_newer
         end
-        last_modification_times
       end
 
       def build_events(latest_files)
-        latest_files.map do |path, latest_file|
+        latest_files.map do |path, last_modification_time|
           date, hour = date_hour = paths[path]
           {
             uuid: SecureRandom.uuid,
@@ -168,7 +164,7 @@ module Triglav::Agent
             resource_unit: resource.unit,
             resource_time: date_hour_to_i(date, hour, resource.timezone),
             resource_timezone: resource.timezone,
-            payload: {path: latest_file.path.to_s, modification_time: latest_file.modification_time}.to_json, # msec
+            payload: {path: path.to_s, modification_time: last_modification_time}.to_json, # msec
           }
         end
       end
