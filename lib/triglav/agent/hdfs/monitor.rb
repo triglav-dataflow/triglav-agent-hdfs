@@ -59,8 +59,8 @@ module Triglav::Agent
       end
 
       def get_last_modification_times
-        max_last_modification_time = @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
         last_modification_times = @status.get
+        max_last_modification_time = last_modification_times[:max] || @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
         removes = last_modification_times.keys - paths.keys
         appends = paths.keys - last_modification_times.keys
         removes.each {|path| last_modification_times.delete(path) }
