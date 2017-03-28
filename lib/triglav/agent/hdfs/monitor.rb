@@ -104,7 +104,7 @@ module Triglav::Agent
         return @dates if @dates
         now = Time.now.localtime(resource.timezone)
         @dates = resource.span_in_days.times.map do |i|
-          (now - (i * 86000)).to_date
+          (now - (i * 86400)).to_date
         end
       end
 
