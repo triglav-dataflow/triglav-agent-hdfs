@@ -16,29 +16,30 @@ module Triglav::Agent
       #   unit: 'daily', 'hourly', or 'singular'
       #   timezone: '+09:00'
       #   span_in_days: 32
-      def initialize(connection, resource_uri_prefix, resource)
+      # @param [Hash] last_modification_times for a resource
+      def initialize(connection, resource_uri_prefix, resource, last_modification_times)
         @connection = connection
         @resource_uri_prefix = resource_uri_prefix
         @resource = resource
         @status = Triglav::Agent::Status.new(resource_uri_prefix, resource.uri)
-        @last_modification_times = get_last_modification_times
+        @last_modification_times = get_last_modification_times(last_modification_times)
       end
 
       def process
         unless resource_valid?
           $logger.warn { "Broken resource: #{resource.to_s}" }
-          return nil
+          return [nil, nil]
         end
-        $logger.debug { "Start process #{resource.uri}" }
+        started = Time.now
+        $logger.debug { "Start  Monitor#process #{resource.uri}" }
 
         events, new_last_modification_times = get_events
 
-        $logger.debug { "Finish process #{resource.uri}" }
+        elapsed = Time.now - started
+        $logger.debug { "Finish Monitor#process #{resource.uri} elapsed:#{elapsed.to_f}" }
 
-        return nil if events.nil? || events.empty?
-        yield(events) if block_given? # send_message
-        update_status_file(new_last_modification_times)
-        true
+        return [nil, nil] if events.nil? or events.empty?
+        [events, new_last_modification_times]
       end
 
       private
@@ -46,6 +47,7 @@ module Triglav::Agent
       def get_events
         new_last_modification_times = get_new_last_modification_times
         latest_files = select_latest_files(new_last_modification_times)
+        new_last_modification_times[:max] = new_last_modification_times.values.max
         events = build_events(latest_files)
         [events, new_last_modification_times]
       rescue => e
@@ -53,13 +55,9 @@ module Triglav::Agent
         nil
       end
 
-      def update_status_file(last_modification_times)
-        last_modification_times[:max] = last_modification_times.values.max
-        @status.set(last_modification_times)
-      end
-
-      def get_last_modification_times
-        last_modification_times = @status.get || {}
+      def get_last_modification_times(last_modification_times)
+        last_modification_times ||= {}
+        # ToDo: want to remove accessing Status in Monitor class
         max_last_modification_time = last_modification_times[:max] || @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
         removes = last_modification_times.keys - paths.keys
         appends = paths.keys - last_modification_times.keys
