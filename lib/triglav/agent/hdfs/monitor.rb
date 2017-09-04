@@ -57,17 +57,13 @@ module Triglav::Agent
 
       def get_last_modification_times(last_modification_times)
         last_modification_times ||= {}
-        # ToDo: want to remove accessing Status in Monitor class
-        max_last_modification_time = last_modification_times[:max] || @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
+        raise ":max is not set #{resource.uri}" unless last_modification_times[:max]
+        max_last_modification_time = last_modification_times[:max]
         removes = last_modification_times.keys - paths.keys
         appends = paths.keys - last_modification_times.keys
         removes.each {|path| last_modification_times.delete(path) }
         appends.each {|path| last_modification_times[path] = max_last_modification_time }
         last_modification_times
-      end
-
-      def get_current_time
-        (Time.now.to_f * 1000).to_i # msec
       end
 
       def resource_valid?
